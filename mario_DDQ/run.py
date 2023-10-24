@@ -3,6 +3,7 @@ import gym_super_mario_bros
 from gym_super_mario_bros.actions import COMPLEX_MOVEMENT
 from ddq_keras import DDQNAgent1
 from utils import plotLearning
+import numpy as np
     
 if __name__ == '__main__':
     env = gym_super_mario_bros.make('SuperMarioBros-v0')
