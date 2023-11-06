@@ -21,22 +21,26 @@ import numpy as np
 import os
 
 # Define the evaluation function to calculate the fitness of a neural network (Mario agent).
-def evaluate_network(genome, env):
+def evaluate_network(genome, config, env):
     # Create a neural network from the genome
-    net = neat.nn.FeedForwardNetwork.create(genome, env)
-    
-    state = env.reset()
+    net = neat.nn.FeedForwardNetwork.create(genome, config)
+
+    state = env.reset()[0]  # Extract the observation from the reset result
     total_reward = 0
     done = False
 
     while not done:
+        observation_space = env.observation_space
+        config.genome_config.num_inputs = observation_space.shape[0]  # Update num_inputs
+        print(observation_space.shape[0])
         # Process the state through the neural network to get actions
         action = np.argmax(net.activate(state))
         state, reward, done, _ = env.step(action)
+        env.render()
+        print(len(state))
         total_reward += reward
 
     return total_reward
-
 
 # Define the run function
 def run(config_path):
@@ -45,6 +49,11 @@ def run(config_path):
                                 neat.DefaultSpeciesSet,
                                 neat.DefaultStagnation,
                                 config_path)
+
+    # Create the Gym environment
+    env = gym_super_mario_bros.make('SuperMarioBros-v0')
+    env = JoypadSpace(env, COMPLEX_MOVEMENT)
+
     p = neat.Population(config)
 
     p.add_reporter(neat.StdOutReporter(True))
@@ -52,43 +61,35 @@ def run(config_path):
     p.add_reporter(stats)
 
     # Run the NEAT evolution loop
-    generations = 100 
+    generations = 100
     for generation in range(generations):
         print(f"Generation {generation + 1}")
-        
+
         # Evaluate each agent in the population
         fitness_scores = []
         for genome_id, genome in p.population.items():
-            fitness = evaluate_network(genome, env)
+            fitness = evaluate_network(genome, config, env)
             fitness_scores.append((genome_id, fitness))
 
         for genome_id, fitness in fitness_scores:
             p.population[genome_id].fitness = fitness
-        
+
         # Run NEAT's evolution step
         p.evolve()
-        
+
         best_genome = p.best_genome()
         best_fitness = best_genome.fitness
         print(f"Best Fitness: {best_fitness}")
-    
+
     return p  # Return the population object
 
 if __name__ == "__main__":
     local_dir = os.path.dirname(__file__)
     config_path = os.path.join(local_dir, "Neat_config.txt")
-    env = gym_super_mario_bros.make('SuperMarioBros-v0')
-    env = JoypadSpace(env, COMPLEX_MOVEMENT)
     population = run(config_path)  # Store the population object returned by the run function
 
     # Get the best-performing network and use it to play the game
     best_genome = population.best_genome()
-    best_network = neat.nn.FeedForwardNetwork.create(best_genome, population.config)
+    best_network = neat.nn.FeedForwardNetwork.create(best_genome, config)
     while True:
-        evaluate_network(best_network, env)
-
-    # Close the Gym environment
-    env.close()
-
-
-
+        evaluate_network(best_genome, config)
