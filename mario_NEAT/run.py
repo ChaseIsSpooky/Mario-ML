@@ -20,35 +20,26 @@ from gym_super_mario_bros.actions import COMPLEX_MOVEMENT
 import numpy as np
 import os
 
-# Define the evaluation function to calculate the fitness of a neural network (Mario agent).
 def evaluate_network(genome, config, env):
     # Create a neural network from the genome
     net = neat.nn.FeedForwardNetwork.create(genome, config)
 
-    state = env.reset()[0]  # Extract the observation from the reset result
+    state = env.reset()  # Extract the observation from the reset result
     total_reward = 0
     done = False
 
     while not done:
-        observation_space = env.observation_space
-        config.genome_config.num_inputs = observation_space.shape[0]  # Update num_inputs
-        print(observation_space.shape[0])
         # Process the state through the neural network to get actions
         action = np.argmax(net.activate(state))
+        print(action)
         state, reward, done, _ = env.step(action)
         env.render()
-        print(len(state))
         total_reward += reward
 
     return total_reward
 
-# Define the run function
-def run(config_path):
-    config = neat.config.Config(neat.DefaultGenome,
-                                neat.DefaultReproduction,
-                                neat.DefaultSpeciesSet,
-                                neat.DefaultStagnation,
-                                config_path)
+
+def run(config):
 
     # Create the Gym environment
     env = gym_super_mario_bros.make('SuperMarioBros-v0')
@@ -86,7 +77,12 @@ def run(config_path):
 if __name__ == "__main__":
     local_dir = os.path.dirname(__file__)
     config_path = os.path.join(local_dir, "Neat_config.txt")
-    population = run(config_path)  # Store the population object returned by the run function
+    config = neat.config.Config(neat.DefaultGenome,
+                                neat.DefaultReproduction,
+                                neat.DefaultSpeciesSet,
+                                neat.DefaultStagnation,
+                                config_path)
+    population = run(config)  # Store the population object returned by the run function
 
     # Get the best-performing network and use it to play the game
     best_genome = population.best_genome()
