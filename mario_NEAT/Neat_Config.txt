@@ -6,7 +6,7 @@ reset_on_extinction   = True
 
 [DefaultGenome]
 # node activation options
-activation_default      = relu
+activation_default      = sigmoid
 activation_mutate_rate  = 0.01
 activation_options      = sigmoid
 
@@ -29,23 +29,24 @@ compatibility_disjoint_coefficient = 2.0
 compatibility_weight_coefficient   = 0.5
 
 # connection add/remove rates
-conn_add_prob           = 0.98
-conn_delete_prob        = 0.15
+conn_add_prob           = 0.5
+conn_delete_prob        = 0.5
 
 # connection enable options
 enabled_default         = True
 enabled_mutate_rate     = 0.01
 
 feed_forward            = True
+initial_connection      = partial 0.5
 
 # node add/remove rates
 node_add_prob           = 0.25
 node_delete_prob        = 0.1
 
 # network parameters
-num_hidden              = 10
+num_hidden              = 1
 num_inputs              = 240
-num_outputs             = 2
+num_outputs             = 12
 
 # node response options
 response_init_mean      = 1.0
@@ -70,7 +71,7 @@ compatibility_threshold = 3.0
 
 [DefaultStagnation]
 species_fitness_func = mean
-max_stagnation       = 15
+max_stagnation       = 10
 species_elitism      = 2
 
 [DefaultReproduction]

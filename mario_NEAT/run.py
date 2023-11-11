@@ -20,30 +20,33 @@ from gym_super_mario_bros.actions import COMPLEX_MOVEMENT
 import numpy as np
 import os
 
-def evaluate_network(genome, config, env):
-    # Create a neural network from the genome
-    net = neat.nn.FeedForwardNetwork.create(genome, config)
+# Create the Gym environment
+env = gym_super_mario_bros.make('SuperMarioBros-v0')
+env = JoypadSpace(env, COMPLEX_MOVEMENT)
 
-    state = env.reset()  # Extract the observation from the reset result
-    total_reward = 0
-    done = False
+def evaluate_network(genomes, config):
+    for genome_id, genome in genomes:
+        # Create a neural network from the genome
+        net = neat.nn.FeedForwardNetwork.create(genome, config)
 
-    while not done:
-        # Process the state through the neural network to get actions
-        action = np.argmax(net.activate(state))
-        print(action)
-        state, reward, done, _ = env.step(action)
-        env.render()
-        total_reward += reward
+        state = env.reset()  # get the observation from the reset result
+        total_reward = 0
+        done = False
+        iterations = 0
 
-    return total_reward
+        while not done and iterations < 7500:
+            action = np.argmax(net.activate(state))
+            print(action)
+            state, reward, done, _ = env.step(action)
+            env.render()
+            total_reward += reward
+            iterations += 1
+        genome.fitness = total_reward
 
-
-def run(config):
-
-    # Create the Gym environment
-    env = gym_super_mario_bros.make('SuperMarioBros-v0')
-    env = JoypadSpace(env, COMPLEX_MOVEMENT)
+def run(config_path):
+    config = neat.config.Config(neat.DefaultGenome, neat.DefaultReproduction,
+                                neat.DefaultSpeciesSet, neat.DefaultStagnation,
+                                config_path)
 
     p = neat.Population(config)
 
@@ -51,41 +54,14 @@ def run(config):
     stats = neat.StatisticsReporter()
     p.add_reporter(stats)
 
-    # Run the NEAT evolution loop
-    generations = 100
-    for generation in range(generations):
-        print(f"Generation {generation + 1}")
+    # Run for up to 100 generations.
+    winner = p.run(evaluate_network, 5)
 
-        # Evaluate each agent in the population
-        fitness_scores = []
-        for genome_id, genome in p.population.items():
-            fitness = evaluate_network(genome, config, env)
-            fitness_scores.append((genome_id, fitness))
-
-        for genome_id, fitness in fitness_scores:
-            p.population[genome_id].fitness = fitness
-
-        # Run NEAT's evolution step
-        p.evolve()
-
-        best_genome = p.best_genome()
-        best_fitness = best_genome.fitness
-        print(f"Best Fitness: {best_fitness}")
-
-    return p  # Return the population object
+    # Display the winning genome.
+    print('\nBest genome:\n{!s}'.format(winner))
 
 if __name__ == "__main__":
     local_dir = os.path.dirname(__file__)
     config_path = os.path.join(local_dir, "Neat_config.txt")
-    config = neat.config.Config(neat.DefaultGenome,
-                                neat.DefaultReproduction,
-                                neat.DefaultSpeciesSet,
-                                neat.DefaultStagnation,
-                                config_path)
-    population = run(config)  # Store the population object returned by the run function
+    run(config_path)  # Store the population object returned by the run function
 
-    # Get the best-performing network and use it to play the game
-    best_genome = population.best_genome()
-    best_network = neat.nn.FeedForwardNetwork.create(best_genome, config)
-    while True:
-        evaluate_network(best_genome, config)

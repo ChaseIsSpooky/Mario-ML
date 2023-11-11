@@ -329,6 +329,7 @@ class SuperMarioBrosEnv(NESEnv):
         # TODO: check whether this is still necessary
         # resolve an issue where after death the x position resets. The x delta
         # is typically has at most magnitude of 3, 5 is a safe bound
+        print(f"move got called {_reward}")
         if _reward < -5 or _reward > 5:
             return 0
 
@@ -339,6 +340,7 @@ class SuperMarioBrosEnv(NESEnv):
         """Return the reward for the in-game clock ticking."""
         _reward = self._time - self._time_last
         self._time_last = self._time
+        print(f"time got called {_reward}")
         # time can only decrease, a positive reward results from a reset and
         # should default to 0 reward
         if _reward > 0:
@@ -350,6 +352,7 @@ class SuperMarioBrosEnv(NESEnv):
     def _death_penalty(self):
         """Return the reward earned by dying."""
         if self._is_dying or self._is_dead:
+            print(f"got called - dead")
             return -25
 
         return 0
