@@ -34,11 +34,11 @@ def evaluate_network(genomes, config):
         done = False
         iterations = 0
 
-        while not done and iterations < 7500:
+        while not done and iterations < 2000:
             action = np.argmax(net.activate(state))
             print(action)
             state, reward, done, _ = env.step(action)
-            env.render()
+            #env.render()
             total_reward += reward
             iterations += 1
         genome.fitness = total_reward
