@@ -3,12 +3,12 @@ from keras import layers
 import gym
 import gym_super_mario_bros
 from nes_py.wrappers import JoypadSpace
-from gym_super_mario_bros.actions import COMPLEX_MOVEMENT
+from gym_super_mario_bros.actions import COMPLEX_MOVEMENT, RIGHT_ONLY
 import numpy as np
 from skimage.color import rgb2gray
 from skimage.transform import resize
 
-env = gym_super_mario_bros.make('SuperMarioBros-v2')
+env = gym_super_mario_bros.make('SuperMarioBros-v0')
 env = JoypadSpace(env, COMPLEX_MOVEMENT)
 
 model = tf.keras.Sequential([
@@ -20,6 +20,19 @@ model = tf.keras.Sequential([
 
 model.compile(optimizer='adam', loss='mean_squared_error')
 
+class ReplayBuffer:
+    def __init__(self, buffer_size):
+        self.buffer_size = buffer_size
+        self.buffer = []
+
+    def add_experience(self, experience):
+        self.buffer.append(experience)
+        if len(self.buffer) > self.buffer_size:
+            self.buffer.pop(0)
+
+    def sample_batch(self, batch_size):
+        return random.sample(self.buffer, batch_size)
+    
 class AgentDoubleQ():
     def __init__(self, alpha, gamma, copy_steps):
         self.alpha = alpha
@@ -62,7 +75,9 @@ def train_agent_doubleq(agent, env, num_episodes, epsilon):
         state_gray = rgb2gray(state)
         state_downsampled = resize(state_gray, (60, 64))
         state_flattened = state_downsampled.flatten()
-
+        # x = True
+        # y = 200
+        tot_rew1 = 0
         while True:
             print("im in train")
             # Epsilon-greedy exploration
@@ -75,16 +90,21 @@ def train_agent_doubleq(agent, env, num_episodes, epsilon):
             next_state, reward, terminal, info = env.step(action_id)
             print(terminal)
             print(info)
-
+            print("total reward: ")
+            tot_rew1 += reward
+            print(tot_rew1)
             next_state_gray = rgb2gray(next_state)
             next_state_downsampled = resize(next_state_gray, (60, 64))
             next_state_flattened = next_state_downsampled.flatten()
 
             agent.q_update(state.reshape(1, 240, 256, 3), action_id, reward, next_state.reshape(1, 240, 256, 3), terminal)
-
             state = next_state
-            #env.render()
+            env.render()
+            # y = y-1
+            # if(y==0):
+            #     x=False
             if terminal:
+                tot_rew1 = 0
                 break
 
             if e % agent.copy_steps == 0:
@@ -92,29 +112,37 @@ def train_agent_doubleq(agent, env, num_episodes, epsilon):
 
 def test_agent(agent, env):
     state = env.reset()
+    tot_rew2 = 0
     while True:
         print("im in test")
         q_values = agent.model.predict(state.reshape(1, 240, 256, 3))
         action_id = np.argmax(q_values)
         next_state, reward, terminal, info = env.step(action_id)
+        print(terminal)
+        print(info)
+        print("total reward: ")
+        tot_rew2 += reward
+        print(tot_rew2)
         state = next_state
-        #env.render()
+        env.render()
+        tot_rew2 = 0
         if terminal:
+            
             break
 
 def __main__():
-    env = gym_super_mario_bros.make('SuperMarioBros-v2')
+    env = gym_super_mario_bros.make('SuperMarioBros-v0')
     env = JoypadSpace(env, COMPLEX_MOVEMENT)
 
-    alpha = 0.001  # Learning rate
-    gamma = 0.99   # Discount factor
-    copy_steps = 1  # Frequency of updating the target network 100
-    epsilon = 0.1  # Exploration rate
+    alpha = 0.001  # Learning rate .001
+    gamma = 0.99   # Discount factor .99
+    copy_steps = 100  # Frequency of updating the target network 100
+    epsilon = .1  # Exploration rate .1
 
     agent = AgentDoubleQ(alpha, gamma, copy_steps)
 
-    num_train_episodes = 1 # 100
-    num_test_episodes = 1 # 10
+    num_train_episodes = 100 # 100
+    num_test_episodes = 10 # 10
 
     # Training
     train_agent_doubleq(agent, env, num_train_episodes, epsilon)
