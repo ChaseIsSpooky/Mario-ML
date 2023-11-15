@@ -1,39 +1,62 @@
-from nes_py.wrappers import JoypadSpace
-import gym_super_mario_bros
-from gym_super_mario_bros.actions import COMPLEX_MOVEMENT
-from ddq_keras import DDQNAgent1
-from utils import plotLearning
-import numpy as np
+import tensorflow as tf
+from keras import layers
 import gym
-import copy
+import gym_super_mario_bros
+from nes_py.wrappers import JoypadSpace
+from gym_super_mario_bros.actions import COMPLEX_MOVEMENT
+import numpy as np
 from skimage.color import rgb2gray
 from skimage.transform import resize
-    
-env = gym.make('SuperMarioBros-v0')
 
-q_table = np.zeros((env.observation_space.n, env.action_space.n))
-q_target = np.zeros((env.observation_space.n, env.action_space.n))
+env = gym_super_mario_bros.make('SuperMarioBros-v2')
+env = JoypadSpace(env, COMPLEX_MOVEMENT)
+
+model = tf.keras.Sequential([
+    layers.Input(shape=(240, 256, 3)),
+    layers.Flatten(),
+    layers.Dense(128, activation='relu'),
+    layers.Dense(env.action_space.n, activation='linear')
+])
+
+model.compile(optimizer='adam', loss='mean_squared_error')
 
 class AgentDoubleQ():
     def __init__(self, alpha, gamma, copy_steps):
         self.alpha = alpha
         self.gamma = gamma
         self.copy_steps = copy_steps
+        self.model = self.build_model()
+        self.target_model = self.build_model()
+
+    def build_model(self):
+        model = tf.keras.Sequential([
+            layers.Input(shape=(240, 256, 3)),
+            layers.Flatten(),
+            layers.Dense(128, activation='relu'),
+            layers.Dense(env.action_space.n, activation='linear')
+        ])
+        model.compile(optimizer='adam', loss='mean_squared_error')
+        return model
 
     def q_update(self, state, action_id, reward, next_state, terminal):
         if terminal:
-           target = reward
+            target = reward
         else:
-           target = reward + self.gamma*max(self.q_target[next_state])
-       
-        td_error = target - self.q_table[state, action_id]
-        self.q_table[state, action_id] = self.q_table[state, action_id] + self.alpha*td_error
-   
+            # Use the target network for Q-value prediction
+            target = reward + self.gamma * np.amax(self.target_model.predict(next_state))
+
+        # Update the Q-value of the chosen action
+        q_values = self.model.predict(state)
+        q_values[0][action_id] = target
+
+        # Train the model on the updated Q-values
+        self.model.fit(state, q_values, verbose=0)
+
     def copy(self):
-        self.q_target = copy.deepcopy(self.q_table)
+        # Update the target network weights with the current model weights
+        self.target_model.set_weights(self.model.get_weights())
 
-
-def train_agent_doubleq(agent, env, num_episodes):
+def train_agent_doubleq(agent, env, num_episodes, epsilon):
     for e in range(num_episodes):
         state = env.reset()
         state_gray = rgb2gray(state)
@@ -41,35 +64,64 @@ def train_agent_doubleq(agent, env, num_episodes):
         state_flattened = state_downsampled.flatten()
 
         while True:
-            action_id = np.argmax(agent.q_table[state])
-            next_state, reward, terminal = env.step(action_id)
-           
-            agent.q_update(state, action_id, reward, next_state, terminal)
+            print("im in train")
+            # Epsilon-greedy exploration
+            if np.random.rand() < epsilon:
+                action_id = env.action_space.sample()
+            else:
+                q_values = agent.model.predict(state.reshape(1, 240, 256, 3))
+                action_id = np.argmax(q_values)
+
+            next_state, reward, terminal, info = env.step(action_id)
+            print(terminal)
+            print(info)
+
+            next_state_gray = rgb2gray(next_state)
+            next_state_downsampled = resize(next_state_gray, (60, 64))
+            next_state_flattened = next_state_downsampled.flatten()
+
+            agent.q_update(state.reshape(1, 240, 256, 3), action_id, reward, next_state.reshape(1, 240, 256, 3), terminal)
+
             state = next_state
-           
+            #env.render()
             if terminal:
                 break
-           
+
             if e % agent.copy_steps == 0:
-               agent.copy()
+                agent.copy()
 
 def test_agent(agent, env):
     state = env.reset()
     while True:
-        action_id = np.argmax(agent.q_table[state])
-        next_state, reward, terminal = env.step(action_id)
+        print("im in test")
+        q_values = agent.model.predict(state.reshape(1, 240, 256, 3))
+        action_id = np.argmax(q_values)
+        next_state, reward, terminal, info = env.step(action_id)
         state = next_state
+        #env.render()
         if terminal:
             break
 
-   
+def __main__():
+    env = gym_super_mario_bros.make('SuperMarioBros-v2')
+    env = JoypadSpace(env, COMPLEX_MOVEMENT)
 
-"""     done = True
-    for step in range(5000):
-        if done:
-            state = env.reset()
-        state, reward, done, info = env.step(env.action_space.sample())
-        env.render()
+    alpha = 0.001  # Learning rate
+    gamma = 0.99   # Discount factor
+    copy_steps = 1  # Frequency of updating the target network 100
+    epsilon = 0.1  # Exploration rate
 
-    env.close() """
+    agent = AgentDoubleQ(alpha, gamma, copy_steps)
 
+    num_train_episodes = 1 # 100
+    num_test_episodes = 1 # 10
+
+    # Training
+    train_agent_doubleq(agent, env, num_train_episodes, epsilon)
+
+    # Testing
+    for _ in range(num_test_episodes):
+        test_agent(agent, env)
+
+if __name__ == "__main__":
+    __main__()
