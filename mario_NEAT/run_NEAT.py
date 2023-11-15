@@ -54,7 +54,7 @@ def run_mario(net):
 
 if __name__ == "__main__":
     local_dir = os.path.dirname(__file__)
-    config_path = os.path.join(local_dir, "Neat_config.txt")
+    config_path = os.path.join(local_dir, "Neat_Config.txt")
     config = neat.config.Config(neat.DefaultGenome, neat.DefaultReproduction,
                                 neat.DefaultSpeciesSet, neat.DefaultStagnation,
                                 config_path)
