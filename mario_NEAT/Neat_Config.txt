@@ -37,7 +37,7 @@ conn_delete_prob     = 0.5
 conn_enable_mutate_rate = 0.01
 conn_enable_options  = 0,1
 
-initial_connection     = full_direct
+initial_connection     = full_nodirect
 
 # feedforward option
 feed_forward         = True

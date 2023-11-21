@@ -12,15 +12,18 @@ def eval_genomes(genomes, config):
     best_fit = -99999
     for genome_id, genome in genomes:
         net = neat.nn.FeedForwardNetwork.create(genome, config)
-        genome.fitness = run_mario(net)
+        genome.fitness, score, time, flag = run_mario(net)
         if genome.fitness > best_fit:
             best_fit = genome.fitness
             
     # Save the best genome of each generation to the file
     with open(best_genome_path, "a") as f:
         f.write(f"Generation: {p.generation}\n")
-        f.write(f"Best Genome ID: {genome_id}\n")
+        f.write(f"Best Genome ID: {genome_id}\n") #need this to be something that will allow us to replay it visually after the algorithm
         f.write(f"Best Fitness Score: {best_fit}\n")
+        f.write(f"Best in game score: {score}\n")
+        if flag == True:
+            f.write(f"Best in game time (only if flag is gotten): {time}\n")
         f.write("\n")
     
 
@@ -30,7 +33,7 @@ def run_mario(net):
     state = env.reset()
     done = False
     total_reward = 0
-    print("population change")
+    print("next genome")
 
     while not done:
         # pre-processing
@@ -43,6 +46,7 @@ def run_mario(net):
         output = net.activate(state_flattened)
         action = np.argmax(output)
         action = min(max(action, 0), 11)
+        print(action)
         state, reward, done, info = env.step(action)
         if info['time'] <= 0:
             done = True
@@ -50,7 +54,7 @@ def run_mario(net):
         total_reward += reward
     print(total_reward)
 
-    return total_reward
+    return total_reward, info['score'], info['time'], info['flag_get']
 
 if __name__ == "__main__":
     local_dir = os.path.dirname(__file__)
