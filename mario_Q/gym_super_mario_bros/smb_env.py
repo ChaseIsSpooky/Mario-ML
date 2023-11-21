@@ -329,18 +329,36 @@ class SuperMarioBrosEnv(NESEnv):
         # TODO: check whether this is still necessary
         # resolve an issue where after death the x position resets. The x delta
         # is typically has at most magnitude of 3, 5 is a safe bound
-        print(f"move got called {_reward}")
         if _reward < -5 or _reward > 5:
             return 0
 
         return _reward
+    @property
+    def _score_reward(self):
+        """Return the reward based on score between steps."""
+        _reward = self.score - self._score_last
+        self._score_last = self._score
+        
+        _reward = _reward
+        
+        return _reward
 
+    @property
+    def _flag_reward(self):
+        """Return the reward based on score between steps."""
+        if self._flag_get:
+            _reward = 100000
+        
+        _reward = _reward
+        
+        return _reward
+
+        
     @property
     def _time_penalty(self):
         """Return the reward for the in-game clock ticking."""
         _reward = self._time - self._time_last
         self._time_last = self._time
-        print(f"time got called {_reward}")
         # time can only decrease, a positive reward results from a reset and
         # should default to 0 reward
         if _reward > 0:
@@ -352,8 +370,7 @@ class SuperMarioBrosEnv(NESEnv):
     def _death_penalty(self):
         """Return the reward earned by dying."""
         if self._is_dying or self._is_dead:
-            print(f"got called - dead")
-            return -25
+            return -500
 
         return 0
 
@@ -397,7 +414,7 @@ class SuperMarioBrosEnv(NESEnv):
 
     def _get_reward(self):
         """Return the reward after a step occurs."""
-        return self._x_reward + self._time_penalty + self._death_penalty
+        return self._x_reward + self._time_penalty + self._death_penalty + self._flag_get + self._score_reward
 
     def _get_done(self):
         """Return True if the episode is over, False otherwise."""
