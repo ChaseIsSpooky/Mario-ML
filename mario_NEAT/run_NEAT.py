@@ -46,7 +46,7 @@ def run_mario(net):
         output = net.activate(state_flattened)
         action = np.argmax(output)
         action = min(max(action, 0), 11)
-        print(action)
+        #print(action)
         state, reward, done, info = env.step(action)
         if info['time'] <= 0:
             done = True
