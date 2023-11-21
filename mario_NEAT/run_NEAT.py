@@ -10,11 +10,17 @@ from skimage.transform import resize
 def eval_genomes(genomes, config):
     best_genome_path = "best_genomes.txt"
     best_fit = -99999
+    best_score = -99999
+    best_time = -99999
     for genome_id, genome in genomes:
         net = neat.nn.FeedForwardNetwork.create(genome, config)
         genome.fitness, score, time, flag = run_mario(net)
         if genome.fitness > best_fit:
             best_fit = genome.fitness
+        if score > best_score:
+            best_score = score
+        if flag == True and time > best_time:
+            best_time = time
             
     # Save the best genome of each generation to the file
     with open(best_genome_path, "a") as f:
@@ -22,7 +28,7 @@ def eval_genomes(genomes, config):
         f.write(f"Best Genome ID: {genome_id}\n") #need this to be something that will allow us to replay it visually after the algorithm
         f.write(f"Best Fitness Score: {best_fit}\n")
         f.write(f"Best in game score: {score}\n")
-        if flag == True:
+        if best_time >= 0:
             f.write(f"Best in game time (only if flag is gotten): {time}\n")
         f.write("\n")
     
