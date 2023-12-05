@@ -74,10 +74,10 @@ def train_ppo(env, policy, epochs=1000, batch_size=64, gamma=0.99, epsilon=0.2, 
             
           
 
-            if info['time'] <= 300:
+            if info['time'] <= 0:
                 logging.info(f"Episode: {epoch}, Score: {info['score']}   x-position:  {info['x_pos']}")
                 done = True
-            env.render()
+            #env.render()
 
 
         total_reward = sum(rewards)
