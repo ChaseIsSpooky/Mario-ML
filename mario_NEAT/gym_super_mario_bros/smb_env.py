@@ -57,7 +57,6 @@ class SuperMarioBrosEnv(NESEnv):
         self._time_last = 0
         # setup a variable to keep track of the last frames x position
         self._x_position_last = 0
-        self._score_last = 0
         # reset the emulator
         self.reset()
         # skip the start screen
@@ -321,30 +320,18 @@ class SuperMarioBrosEnv(NESEnv):
         self._frame_advance(0)
 
     # MARK: Reward Function
-    @property
-    def _score_reward(self):
-        """Return the reward based on score between steps."""
-        _reward = self._score - self._score_last
-        self._score_last = self._score
-        return _reward
-
-    @property
-    def _flag_reward(self):
-        """Return the reward based on score between steps."""
-        _reward = 0
-        if self._flag_get:
-            _reward = 100000
-        return _reward
 
     @property
     def _x_reward(self):
         """Return the reward based on left right movement between steps."""
-        _reward = self._x_position - self._x_position_last
+        _reward = 200 * (self._x_position - self._x_position_last)  #added x200
+       # if((self._x_position - self._x_position_last) == 0):
+        #    _reward = -10
         self._x_position_last = self._x_position
         # TODO: check whether this is still necessary
         # resolve an issue where after death the x position resets. The x delta
         # is typically has at most magnitude of 3, 5 is a safe bound
-        if _reward < -5 or _reward > 5:
+        if _reward < 200 * (-5) or _reward > 200 * (5): 
             return 0
 
         return _reward
@@ -352,7 +339,7 @@ class SuperMarioBrosEnv(NESEnv):
     @property
     def _time_penalty(self):
         """Return the reward for the in-game clock ticking."""
-        _reward = self._time - self._time_last
+        _reward = (self._time - self._time_last) # 
         self._time_last = self._time
         # time can only decrease, a positive reward results from a reset and
         # should default to 0 reward
@@ -365,7 +352,7 @@ class SuperMarioBrosEnv(NESEnv):
     def _death_penalty(self):
         """Return the reward earned by dying."""
         if self._is_dying or self._is_dead:
-            return -25
+            return -5000 #changed from -25 to -5000
 
         return 0
 
@@ -409,7 +396,7 @@ class SuperMarioBrosEnv(NESEnv):
 
     def _get_reward(self):
         """Return the reward after a step occurs."""
-        return self._x_reward + self._time_penalty + self._death_penalty + self._score_reward + self._flag_reward
+        return self._x_reward + self._time_penalty + self._death_penalty
 
     def _get_done(self):
         """Return True if the episode is over, False otherwise."""

@@ -57,6 +57,7 @@ class SuperMarioBrosEnv(NESEnv):
         self._time_last = 0
         # setup a variable to keep track of the last frames x position
         self._x_position_last = 0
+        self._score_last = 0
         # reset the emulator
         self.reset()
         # skip the start screen
@@ -320,6 +321,20 @@ class SuperMarioBrosEnv(NESEnv):
         self._frame_advance(0)
 
     # MARK: Reward Function
+    @property
+    def _score_reward(self):
+        """Return the reward based on score between steps."""
+        _reward = self._score - self._score_last
+        self._score_last = self._score
+        return _reward
+
+    @property
+    def _flag_reward(self):
+        """Return the reward based on score between steps."""
+        _reward = 0
+        if self._flag_get:
+            _reward = 100000
+        return _reward
 
     @property
     def _x_reward(self):
@@ -394,7 +409,7 @@ class SuperMarioBrosEnv(NESEnv):
 
     def _get_reward(self):
         """Return the reward after a step occurs."""
-        return self._x_reward + self._time_penalty + self._death_penalty
+        return self._x_reward + self._time_penalty + self._death_penalty + self._score_reward + self._flag_reward
 
     def _get_done(self):
         """Return True if the episode is over, False otherwise."""
