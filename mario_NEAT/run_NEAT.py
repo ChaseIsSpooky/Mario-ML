@@ -6,7 +6,13 @@ import numpy as np
 import os
 from skimage.color import rgb2gray
 from skimage.transform import resize
+import warnings
+# Filter out Gym-related warnings
+warnings.filterwarnings("ignore", category=UserWarning, module="gym")
+warnings.filterwarnings("ignore", category=DeprecationWarning, module="gym.utils.passive_env_checker")
+warnings.filterwarnings("ignore", category=UserWarning, message="Creating a tensor from a list of numpy.ndarrays is extremely slow.")
 
+#function for evaluating genomes (fitness)
 def eval_genomes(genomes, config):
     best_genome_path = "best_genomes.txt"
     best_fit = -99999
@@ -32,7 +38,7 @@ def eval_genomes(genomes, config):
             f.write(f"Best in game time (only if flag is gotten): {time}\n")
         f.write("\n")
     
-
+#running loop
 def run_mario(net):
     env = gym_super_mario_bros.make('SuperMarioBros-v0')
     env = JoypadSpace(env, COMPLEX_MOVEMENT)

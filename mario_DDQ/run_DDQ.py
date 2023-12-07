@@ -9,10 +9,17 @@ from skimage.color import rgb2gray
 import logging
 from skimage.transform import resize
 import os
+import warnings
+
+# Filter out Gym-related warnings
+warnings.filterwarnings("ignore", category=UserWarning, module="gym")
+warnings.filterwarnings("ignore", category=DeprecationWarning, module="gym.utils.passive_env_checker")
+warnings.filterwarnings("ignore", category=UserWarning, message="Creating a tensor from a list of numpy.ndarrays is extremely slow.")
 
 env = gym_super_mario_bros.make('SuperMarioBros-v2')
 env = JoypadSpace(env, COMPLEX_MOVEMENT)
 
+#model
 model = tf.keras.Sequential([
     layers.Input(shape=(240, 256, 3)),
     layers.Flatten(),
@@ -21,7 +28,7 @@ model = tf.keras.Sequential([
 ])
 
 model.compile(optimizer='adam', loss='mean_squared_error')
-
+#Agent
 class AgentDoubleQ():
     def __init__(self, alpha, gamma, copy_steps):
         self.alpha = alpha
@@ -131,7 +138,7 @@ def __main__():
     
     agent = AgentDoubleQ(alpha, gamma, copy_steps)
 
-    num_train_episodes = 100 # 100
+    num_train_episodes = 1000 # 100
     num_test_episodes = 10 # 10
 
     # Training
